@@ -453,6 +453,25 @@ def filter_last_12_months(trades: list[Trade]) -> list[Trade]:
     return out
 
 
+def _date_int(d: str | None) -> int:
+    """ISO YYYY-MM-DD → integer for descending sort. Empty/invalid → 0."""
+    if not d:
+        return 0
+    try:
+        return int(d[:10].replace("-", ""))
+    except (ValueError, TypeError):
+        return 0
+
+
+def sort_key(t: dict, prefer_new: bool = True) -> tuple:
+    """Canonical sort order: NEW first, then most-recent trade date, then largest amount."""
+    return (
+        0 if (prefer_new and t.get("is_new")) else 1,
+        -_date_int(t.get("transaction_date")),
+        -int(t.get("amount_sort") or 0),
+    )
+
+
 def mark_new(trades: list[Trade], seen_ids: dict[str, str], force: bool = False) -> int:
     n = 0
     for t in trades:

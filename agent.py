@@ -104,10 +104,8 @@ def run(dry_run: bool, force: bool) -> int:
     new_count = p.mark_new(all_trades, seen_ids, force=force)
     log.info("New trades detected: %d (of %d total)", new_count, len(all_trades))
 
-    # Sort: is_new DESC, then amount_sort DESC, then disclosure date DESC
-    all_trades.sort(key=lambda t: (not t.get("is_new"),
-                                    -int(t.get("amount_sort") or 0),
-                                    t.get("disclosure_date") or ""))
+    # Canonical order: NEW first, most-recent trade date next, largest amount last.
+    all_trades.sort(key=p.sort_key)
 
     # 6. Build trades.json payload
     has_new_filing = bool(asch_raw.get("found") and asch_raw.get("filing_date")

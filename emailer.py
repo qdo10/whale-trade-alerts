@@ -11,6 +11,8 @@ from email.mime.text import MIMEText
 from html import escape
 from typing import Any
 
+import parser as p
+
 log = logging.getLogger(__name__)
 
 PAGES_URL_DEFAULT = "https://github.com"  # README will override
@@ -132,7 +134,7 @@ def build_email_html(trades: list[dict[str, Any]],
                      asch: dict[str, Any], pages_url: str = PAGES_URL_DEFAULT) -> tuple[str, str]:
     today = date.today().isoformat()
     new_trades = [t for t in trades if t.get("is_new")]
-    new_trades.sort(key=lambda t: t.get("amount_sort", 0), reverse=True)
+    new_trades.sort(key=lambda t: p.sort_key(t, prefer_new=False))
     total = len(trades)
     subject_n = len(new_trades)
 
@@ -197,7 +199,7 @@ def build_email_html(trades: list[dict[str, Any]],
   </div>
 </div>"""
 
-    sorted_trades = sorted(trades, key=lambda t: t.get("amount_sort", 0), reverse=True)
+    sorted_trades = sorted(trades, key=p.sort_key)
     shown = sorted_trades[:50]
     rows = "".join(_table_row(t, i) for i, t in enumerate(shown))
     overflow_note = ""
@@ -259,7 +261,7 @@ def build_email_text(trades: list[dict[str, Any]], asch: dict[str, Any]) -> str:
     if new:
         lines.append("NEW TRADES")
         lines.append("-" * 70)
-        for t in sorted(new, key=lambda x: x.get("amount_sort", 0), reverse=True):
+        for t in sorted(new, key=lambda x: p.sort_key(x, prefer_new=False)):
             lines.append(
                 f"[{t['transaction_type']:4}] {t['ticker']:6} "
                 f"{t['person']} ({t['party_short']}) — {t['amount']}"
@@ -276,7 +278,7 @@ def build_email_text(trades: list[dict[str, Any]], asch: dict[str, Any]) -> str:
         lines.append("")
     lines.append("All recent trades (top 30 by amount):")
     lines.append("-" * 70)
-    for t in sorted(trades, key=lambda x: x.get("amount_sort", 0), reverse=True)[:30]:
+    for t in sorted(trades, key=p.sort_key)[:30]:
         prefix = "NEW " if t.get("is_new") else "    "
         lines.append(f"{prefix}{t['transaction_date']:10} {t['ticker']:6} "
                      f"{t['transaction_type']:4} {t['amount']:24} {t['person']}")

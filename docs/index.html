@@ -164,8 +164,8 @@
       <th data-sort="transaction_type">Action<span class="arrow"></span></th>
       <th data-sort="asset_type">Asset<span class="arrow"></span></th>
       <th>Trade Details</th>
-      <th data-sort="amount_sort">Amount<span class="arrow">▼</span></th>
-      <th data-sort="transaction_date">Trade Date<span class="arrow"></span></th>
+      <th data-sort="amount_sort">Amount<span class="arrow"></span></th>
+      <th data-sort="transaction_date">Trade Date<span class="arrow">▼</span></th>
       <th data-sort="disclosure_date">Filed Date<span class="arrow"></span></th>
       <th>Source</th>
     </tr></thead>
@@ -187,7 +187,7 @@
 </footer>
 
 <script>
-const SORT_STATE = { key: "amount_sort", dir: "desc" };
+const SORT_STATE = { key: "transaction_date", dir: "desc" };
 const FILTERS = { q: "", actor: "all", action: "all", asset: "all" };
 const MAX_ROWS = 200;
 let DATA = { trades: [], aschenbrenner: {}, metadata: {} };
@@ -241,8 +241,17 @@ function sortRows(rows) {
     let av = a[key], bv = b[key];
     if (av == null) av = "";
     if (bv == null) bv = "";
-    if (typeof av === "number" && typeof bv === "number") return (av - bv) * m;
-    return String(av).localeCompare(String(bv)) * m;
+    let primary;
+    if (typeof av === "number" && typeof bv === "number") primary = (av - bv) * m;
+    else primary = String(av).localeCompare(String(bv)) * m;
+    if (primary !== 0) return primary;
+    // Tiebreaker: when sorting by date, fall back to amount_sort desc;
+    // when sorting by amount, fall back to transaction_date desc.
+    if (key === "transaction_date" || key === "disclosure_date") {
+      return (b.amount_sort || 0) - (a.amount_sort || 0);
+    }
+    const ad = String(a.transaction_date || ""), bd = String(b.transaction_date || "");
+    return bd.localeCompare(ad);
   });
 }
 function renderMetrics(rows) {

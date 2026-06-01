@@ -101,6 +101,6 @@ def commit_state_files(state: dict[str, Any], trades_payload: dict[str, Any]) ->
     seen_bytes = json.dumps(state, indent=2, sort_keys=True).encode("utf-8")
     trades_bytes = json.dumps(trades_payload, indent=2).encode("utf-8")
     commit_file_via_api(repo, "seen_trades.json", seen_bytes,
-                        "chore: update seen trades [skip ci]", token)
+                        "chore: update seen trades", token)
     commit_file_via_api(repo, "docs/trades.json", trades_bytes,
-                        "chore: refresh trades data [skip ci]", token)
+                        "chore: refresh trades data", token)
