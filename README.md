@@ -45,7 +45,7 @@ Create a `.env` file for local testing:
 ```
 GMAIL_USER=you@gmail.com
 GMAIL_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
-ALERT_EMAIL=you@gmail.com
+ALERT_EMAIL=you@gmail.com,partner@example.com  # comma-separated for multiple
 GITHUB_TOKEN=ghp_...
 GITHUB_REPO=yourusername/whale-trade-alerts
 ```

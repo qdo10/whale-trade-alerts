@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import smtplib
 from datetime import date, datetime
 from email.mime.multipart import MIMEMultipart
@@ -278,25 +279,33 @@ def should_send_email(new_count: int) -> bool:
     return False
 
 
+def _parse_recipients(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    # Accept commas, semicolons, or whitespace as separators
+    parts = re.split(r"[,;\s]+", raw.strip())
+    return [p for p in (s.strip() for s in parts) if p]
+
+
 def send_email(subject: str, html: str, text: str) -> bool:
     user = os.environ.get("GMAIL_USER")
     pw = os.environ.get("GMAIL_APP_PASSWORD")
-    to_addr = os.environ.get("ALERT_EMAIL")
-    if not (user and pw and to_addr):
-        log.warning("Email creds missing; skipping send")
+    recipients = _parse_recipients(os.environ.get("ALERT_EMAIL"))
+    if not (user and pw and recipients):
+        log.warning("Email creds missing or no recipients; skipping send")
         return False
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = user
-    msg["To"] = to_addr
+    msg["To"] = ", ".join(recipients)
     msg.attach(MIMEText(text, "plain", "utf-8"))
     msg.attach(MIMEText(html, "html", "utf-8"))
     try:
         with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as s:
             s.starttls()
             s.login(user, pw)
-            s.sendmail(user, [to_addr], msg.as_string())
-        log.info("Email sent to %s (subject=%r)", to_addr, subject)
+            s.sendmail(user, recipients, msg.as_string())
+        log.info("Email sent to %d recipient(s) (subject=%r)", len(recipients), subject)
         return True
     except Exception as exc:
         log.exception("SMTP send failed: %s", exc)
