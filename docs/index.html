@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🐋 Whale Trade Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0f1923; --white:#fff; --bg:#f5f7fa;
+    --green:#16a34a; --green-bg:#dcfce7;
+    --red:#dc2626; --red-bg:#fee2e2;
+    --amber:#d97706; --amber-bg:#fef3c7;
+    --blue:#2563eb; --blue-bg:#dbeafe;
+    --gray:#6b7280; --gray-bg:#e5e7eb; --line:#e5e7eb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+       background:var(--bg);color:var(--navy);line-height:1.5}
+  .mono{font-family:'DM Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+  header.hero{background:var(--navy);color:var(--white);padding:32px 28px}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 24px}
+  .hero h1{margin:0;font-size:28px;font-weight:800;letter-spacing:-0.02em}
+  .hero .sub{opacity:0.7;font-size:14px;margin-top:4px}
+  .hero .meta{display:flex;gap:16px;align-items:center;margin-top:14px;
+              font-size:12px;color:#cbd5e1}
+  .dot{width:8px;height:8px;border-radius:50%;background:#16a34a;
+       display:inline-block;margin-right:6px;
+       animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;
+           margin:-24px auto 0;max-width:1232px;padding:0 24px;position:relative}
+  .metric{background:var(--white);border-radius:10px;padding:14px 16px;
+          box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid var(--line)}
+  .metric .label{font-size:11px;color:var(--gray);text-transform:uppercase;
+                 letter-spacing:0.05em;font-weight:600}
+  .metric .value{font-size:22px;font-weight:800;margin-top:4px;
+                 font-family:'DM Mono',monospace}
+  .metric.new .value{color:var(--amber)}
+  .alert-banner{background:#fef3c7;border:1px solid var(--amber);
+                color:#78350f;padding:12px 16px;border-radius:8px;
+                margin:20px 24px;cursor:pointer;max-width:1232px;
+                margin-left:auto;margin-right:auto;font-size:13px;font-weight:500}
+  .filters{background:var(--white);border:1px solid var(--line);
+           border-radius:10px;padding:14px;margin:20px auto;
+           max-width:1232px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .filters input[type=text]{flex:1;min-width:220px;padding:8px 12px;
+                            border:1px solid var(--line);border-radius:6px;
+                            font-size:13px;font-family:inherit}
+  .filter-group{display:flex;gap:4px;border-left:1px solid var(--line);
+                padding-left:10px;margin-left:4px;align-items:center}
+  .filter-group .label{font-size:11px;color:var(--gray);margin-right:4px;
+                       text-transform:uppercase;font-weight:600;letter-spacing:0.04em}
+  .pill-btn{padding:5px 12px;border:1px solid var(--line);
+            background:var(--white);border-radius:6px;cursor:pointer;
+            font-size:12px;font-weight:500;font-family:inherit;color:var(--navy);
+            transition:all .15s}
+  .pill-btn:hover{background:#f3f4f6}
+  .pill-btn.active{background:var(--navy);color:var(--white);border-color:var(--navy)}
+  .table-wrap{background:var(--white);border-radius:10px;border:1px solid var(--line);
+              overflow:hidden;margin:0 24px 24px;max-width:1232px;
+              margin-left:auto;margin-right:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:var(--navy);color:var(--white);font-weight:600;text-align:left;
+     padding:11px 12px;font-size:11px;text-transform:uppercase;
+     letter-spacing:0.04em;cursor:pointer;user-select:none;white-space:nowrap}
+  th .arrow{opacity:0.5;margin-left:4px}
+  td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  tbody tr:nth-child(even){background:#fafbfc}
+  tbody tr.is-new{border-left:3px solid var(--amber);background:#fffbeb}
+  tbody tr.highlight{background:#fef3c7 !important;transition:background 1s}
+  .pill{display:inline-block;padding:2px 8px;border-radius:10px;
+        font-size:10px;font-weight:600;line-height:1.5}
+  .pill-D{background:var(--blue-bg);color:#1e3a8a}
+  .pill-R{background:var(--red-bg);color:#991b1b}
+  .pill-I,.pill-X,.pill-Unknown,.pill-DASH,.pill-q{background:var(--gray-bg);color:#374151}
+  .pill-buy{background:var(--green-bg);color:#166534}
+  .pill-sell{background:var(--red-bg);color:#991b1b}
+  .pill-opt{background:var(--amber-bg);color:#92400e;margin-left:4px}
+  .pill-new{background:var(--amber);color:#fff;font-size:10px;margin-right:6px}
+  .ticker{font-family:'DM Mono',monospace;font-weight:700;color:var(--navy)}
+  .actor-name{font-weight:600}
+  .actor-role{font-size:11px;color:var(--gray);margin-top:1px}
+  .asset-desc{max-width:280px;overflow:hidden;text-overflow:ellipsis;
+              white-space:nowrap}
+  .src-link{color:var(--blue);text-decoration:none;margin-left:4px}
+  .src-cell{color:var(--gray);font-size:11px}
+  .overflow-note{padding:12px;text-align:center;color:var(--gray);font-size:12px}
+  .asch-section{background:var(--white);border-radius:10px;border:1px solid var(--line);
+                margin:0 24px 24px;padding:18px;max-width:1232px;
+                margin-left:auto;margin-right:auto}
+  .asch-section h2{margin:0 0 12px;font-size:16px}
+  .asch-empty{background:#f3f4f6;padding:14px 16px;border-radius:8px;
+              color:#374151;font-size:13px}
+  .asch-section table{border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  footer{padding:24px;text-align:center;color:var(--gray);font-size:12px;
+         max-width:1232px;margin:0 auto}
+  footer a{color:var(--blue);text-decoration:none}
+  .loading,.error{padding:60px;text-align:center;color:var(--gray)}
+  .error{color:var(--red)}
+  @media (max-width:900px){
+    .metrics{grid-template-columns:repeat(2,1fr)}
+    .filters{flex-direction:column;align-items:stretch}
+    .filter-group{border-left:none;border-top:1px solid var(--line);
+                  padding:8px 0 0;margin:0;flex-wrap:wrap}
+    .asset-desc{max-width:160px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>🐋 Whale Trade Alerts</h1>
+    <div class="sub">Congress · President · Aschenbrenner Fund</div>
+    <div class="meta">
+      <span><span class="dot"></span>Live data via GitHub Actions</span>
+      <span>·</span>
+      <span id="lastUpdated">Last updated: —</span>
+    </div>
+  </div>
+</header>
+
+<section class="metrics">
+  <div class="metric"><div class="label">Total (12mo)</div><div class="value mono" id="m-total">—</div></div>
+  <div class="metric new"><div class="label">New Trades</div><div class="value mono" id="m-new">—</div></div>
+  <div class="metric"><div class="label">Buys / Sells</div><div class="value mono" id="m-action">—</div></div>
+  <div class="metric"><div class="label">Options</div><div class="value mono" id="m-opt">—</div></div>
+  <div class="metric"><div class="label">Unique Actors</div><div class="value mono" id="m-actors">—</div></div>
+</section>
+
+<div id="alertBanner" style="display:none" class="alert-banner"></div>
+
+<section class="filters wrap" style="max-width:1232px">
+  <input type="text" id="q" placeholder="Search name or ticker…">
+  <div class="filter-group">
+    <span class="label">Actor</span>
+    <button class="pill-btn active" data-filter="actor" data-value="all">All</button>
+    <button class="pill-btn" data-filter="actor" data-value="congress">Congress</button>
+    <button class="pill-btn" data-filter="actor" data-value="president">President</button>
+    <button class="pill-btn" data-filter="actor" data-value="aschenbrenner">Aschenbrenner</button>
+  </div>
+  <div class="filter-group">
+    <span class="label">Action</span>
+    <button class="pill-btn active" data-filter="action" data-value="all">All</button>
+    <button class="pill-btn" data-filter="action" data-value="Buy">Buy</button>
+    <button class="pill-btn" data-filter="action" data-value="Sell">Sell</button>
+  </div>
+  <div class="filter-group">
+    <span class="label">Asset</span>
+    <button class="pill-btn active" data-filter="asset" data-value="all">All</button>
+    <button class="pill-btn" data-filter="asset" data-value="Stock">Stock</button>
+    <button class="pill-btn" data-filter="asset" data-value="Option">Options</button>
+  </div>
+</section>
+
+<div class="table-wrap">
+  <table id="tradesTable">
+    <thead><tr>
+      <th data-sort="person">Actor<span class="arrow"></span></th>
+      <th data-sort="ticker">Ticker<span class="arrow"></span></th>
+      <th data-sort="transaction_type">Action<span class="arrow"></span></th>
+      <th data-sort="asset_type">Asset<span class="arrow"></span></th>
+      <th>Trade Details</th>
+      <th data-sort="amount_sort">Amount<span class="arrow">▼</span></th>
+      <th data-sort="transaction_date">Trade Date<span class="arrow"></span></th>
+      <th data-sort="disclosure_date">Filed Date<span class="arrow"></span></th>
+      <th>Source</th>
+    </tr></thead>
+    <tbody id="tradesBody">
+      <tr><td colspan="9" class="loading">Loading trades…</td></tr>
+    </tbody>
+  </table>
+  <div id="overflowNote" class="overflow-note" style="display:none"></div>
+</div>
+
+<section class="asch-section" id="aschSection">
+  <h2>Aschenbrenner Fund — 13F Holdings</h2>
+  <div id="aschBody"><div class="loading">Loading…</div></div>
+</section>
+
+<footer>
+  Data: STOCK Act PTRs (House/Senate Stock Watcher), OGE Form 278-T, SEC EDGAR 13F<br>
+  <a href="https://github.com/" id="repoLink">GitHub repo</a> · Built with GitHub Actions · Updates daily at 3pm PT
+</footer>
+
+<script>
+const SORT_STATE = { key: "amount_sort", dir: "desc" };
+const FILTERS = { q: "", actor: "all", action: "all", asset: "all" };
+const MAX_ROWS = 200;
+let DATA = { trades: [], aschenbrenner: {}, metadata: {} };
+
+function pill(cls, text) {
+  return `<span class="pill ${cls}">${escapeHtml(text)}</span>`;
+}
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+function partyClass(p) {
+  return ({"D":"pill-D","R":"pill-R","I":"pill-I","?":"pill-q","—":"pill-DASH"})[p] || "pill-q";
+}
+function tradeDetails(t) {
+  if (t.asset_type === "Option" && t.option_type) {
+    const parts = [t.option_type];
+    if (t.strike_price) parts.push(`$${t.strike_price} strike`);
+    if (t.expiration_date) parts.push(t.expiration_date);
+    if (t.contracts) parts.push(`${t.contracts} contracts`);
+    return parts.join(" · ");
+  }
+  if (t.source === "13F" && t.quantity) {
+    return `${t.quantity}${t.thirteen_f_note ? " · " + t.thirteen_f_note : ""}`;
+  }
+  if (t.quantity) return t.quantity;
+  return "—";
+}
+function actorBucket(t) {
+  if (t.source === "13F") return "aschenbrenner";
+  if (t.source === "OGE 278-T") return "president";
+  if (t.chamber === "House" || t.chamber === "Senate") return "congress";
+  return "other";
+}
+function applyFilters(rows) {
+  const q = FILTERS.q.toLowerCase();
+  return rows.filter(t => {
+    if (q && !(`${t.person} ${t.ticker}`.toLowerCase().includes(q))) return false;
+    if (FILTERS.actor !== "all" && actorBucket(t) !== FILTERS.actor) return false;
+    if (FILTERS.action !== "all" && t.transaction_type !== FILTERS.action) return false;
+    if (FILTERS.asset !== "all" && t.asset_type !== FILTERS.asset) return false;
+    return true;
+  });
+}
+function sortRows(rows) {
+  const { key, dir } = SORT_STATE;
+  const m = dir === "asc" ? 1 : -1;
+  return rows.slice().sort((a, b) => {
+    if (a.is_new !== b.is_new) return a.is_new ? -1 : 1;
+    let av = a[key], bv = b[key];
+    if (av == null) av = "";
+    if (bv == null) bv = "";
+    if (typeof av === "number" && typeof bv === "number") return (av - bv) * m;
+    return String(av).localeCompare(String(bv)) * m;
+  });
+}
+function renderMetrics(rows) {
+  const total = rows.length;
+  const newN = rows.filter(t => t.is_new).length;
+  const buys = rows.filter(t => t.transaction_type === "Buy").length;
+  const sells = rows.filter(t => t.transaction_type === "Sell").length;
+  const opt = rows.filter(t => t.asset_type === "Option").length;
+  const actors = new Set(rows.map(t => t.person)).size;
+  document.getElementById("m-total").textContent = total;
+  document.getElementById("m-new").textContent = newN;
+  document.getElementById("m-action").textContent = `${buys} / ${sells}`;
+  document.getElementById("m-opt").textContent = opt;
+  document.getElementById("m-actors").textContent = actors;
+}
+function renderBanner(rows) {
+  const newN = rows.filter(t => t.is_new).length;
+  const b = document.getElementById("alertBanner");
+  if (newN > 0) {
+    b.style.display = "block";
+    b.textContent = `🚨 ${newN} new trade${newN !== 1 ? "s" : ""} detected since last check — scroll or filter to see them`;
+    b.onclick = () => {
+      const first = document.querySelector("tr.is-new");
+      if (first) {
+        first.scrollIntoView({behavior:"smooth", block:"center"});
+        first.classList.add("highlight");
+        setTimeout(() => first.classList.remove("highlight"), 2500);
+      }
+    };
+  } else {
+    b.style.display = "none";
+  }
+}
+function renderTable() {
+  const filtered = applyFilters(DATA.trades);
+  renderMetrics(filtered);
+  renderBanner(filtered);
+  const sorted = sortRows(filtered);
+  const shown = sorted.slice(0, MAX_ROWS);
+  const tbody = document.getElementById("tradesBody");
+  if (shown.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="loading">No trades match these filters.</td></tr>`;
+  } else {
+    tbody.innerHTML = shown.map(t => {
+      const actBuy = t.transaction_type === "Buy";
+      const actCls = actBuy ? "pill-buy" : "pill-sell";
+      const actLabel = (actBuy ? "▲ " : "▼ ") + t.transaction_type;
+      const newBadge = t.is_new ? `<span class="pill pill-new">NEW</span>` : "";
+      const optBadge = t.asset_type === "Option" ? `<span class="pill pill-opt">OPT</span>` : "";
+      const link = t.filing_url ? `<a class="src-link" href="${escapeHtml(t.filing_url)}" target="_blank" rel="noopener">↗</a>` : "";
+      return `<tr class="${t.is_new ? "is-new" : ""}">
+        <td>${newBadge}<span class="actor-name">${escapeHtml(t.person)}</span> ${pill(partyClass(t.party_short), t.party_short)}
+          <div class="actor-role">${escapeHtml(t.role)}${t.state ? " · " + escapeHtml(t.state) : ""}</div></td>
+        <td><span class="ticker">${escapeHtml(t.ticker)}</span></td>
+        <td>${pill(actCls, actLabel)}</td>
+        <td>${escapeHtml(t.asset_type)}${optBadge}</td>
+        <td><div class="asset-desc" title="${escapeHtml(t.asset_description)}">${escapeHtml(t.asset_description || "—")}</div>
+          <div class="actor-role">${escapeHtml(tradeDetails(t))}</div></td>
+        <td>${escapeHtml(t.amount)}</td>
+        <td>${escapeHtml(t.transaction_date || "—")}</td>
+        <td>${escapeHtml(t.disclosure_date || "—")}</td>
+        <td class="src-cell">${escapeHtml(t.source)}${link}</td>
+      </tr>`;
+    }).join("");
+  }
+  const note = document.getElementById("overflowNote");
+  if (sorted.length > MAX_ROWS) {
+    note.style.display = "block";
+    note.textContent = `Showing ${MAX_ROWS} of ${sorted.length} trades. Use filters to narrow results.`;
+  } else {
+    note.style.display = "none";
+  }
+  // Update sort arrows
+  document.querySelectorAll("th[data-sort]").forEach(th => {
+    const arrow = th.querySelector(".arrow");
+    if (!arrow) return;
+    arrow.textContent = th.dataset.sort === SORT_STATE.key
+      ? (SORT_STATE.dir === "asc" ? "▲" : "▼") : "";
+  });
+}
+function renderAsch() {
+  const a = DATA.aschenbrenner || {};
+  const body = document.getElementById("aschBody");
+  if (!a.holdings || a.holdings.length === 0) {
+    const last = a.last_filing_date || "unknown";
+    const n = a.positions_count || 0;
+    body.innerHTML = `<div class="asch-empty">
+      📁 No new 13F filing. Last filing: <b>${escapeHtml(last)}</b>.
+      Tracking <b>${n}</b> position${n !== 1 ? "s" : ""}.
+    </div>`;
+    return;
+  }
+  const rows = a.holdings.map(h => `<tr>
+    <td><span class="ticker">${escapeHtml(h.ticker || "N/A")}</span></td>
+    <td>${escapeHtml(h.company || "")}</td>
+    <td class="mono">${Number(h.shares || 0).toLocaleString()}</td>
+    <td class="mono">$${Number((h.value_thousands || 0) * 1000).toLocaleString()}</td>
+    <td>${escapeHtml(h.change || "—")}</td>
+    <td>${escapeHtml(h.filed_date || "—")}</td>
+  </tr>`).join("");
+  body.innerHTML = `<table style="width:100%">
+    <thead><tr>
+      <th>Ticker</th><th>Company</th><th>Shares</th>
+      <th>Est. Value</th><th>Δ vs Prior Q</th><th>Filed</th>
+    </tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+function wireFilters() {
+  document.getElementById("q").addEventListener("input", e => {
+    FILTERS.q = e.target.value;
+    renderTable();
+  });
+  document.querySelectorAll(".pill-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.filter, val = btn.dataset.value;
+      FILTERS[key] = val;
+      document.querySelectorAll(`.pill-btn[data-filter="${key}"]`)
+        .forEach(b => b.classList.toggle("active", b.dataset.value === val));
+      renderTable();
+    });
+  });
+  document.querySelectorAll("th[data-sort]").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if (SORT_STATE.key === k) {
+        SORT_STATE.dir = SORT_STATE.dir === "asc" ? "desc" : "asc";
+      } else {
+        SORT_STATE.key = k;
+        SORT_STATE.dir = ["amount_sort","transaction_date","disclosure_date"].includes(k) ? "desc" : "asc";
+      }
+      renderTable();
+    });
+  });
+}
+async function load() {
+  try {
+    const r = await fetch("./trades.json?ts=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    DATA = await r.json();
+    if (!Array.isArray(DATA.trades)) DATA.trades = [];
+    const ts = DATA?.metadata?.generated_at;
+    document.getElementById("lastUpdated").textContent =
+      "Last updated: " + (ts ? new Date(ts).toLocaleString() : "—");
+    renderTable();
+    renderAsch();
+  } catch (err) {
+    document.getElementById("tradesBody").innerHTML =
+      `<tr><td colspan="9" class="error">Failed to load trades.json: ${escapeHtml(err.message)}</td></tr>`;
+    document.getElementById("aschBody").innerHTML =
+      `<div class="asch-empty">Unable to load fund data.</div>`;
+  }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  wireFilters();
+  // Best-effort repo link from current URL
+  const m = location.host.match(/^([^.]+)\.github\.io$/);
+  if (m) document.getElementById("repoLink").href =
+    `https://github.com/${m[1]}/whale-trade-alerts`;
+  load();
+});
+</script>
+</body></html>

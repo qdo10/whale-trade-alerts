@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+agent.log
+email_preview.html
+.DS_Store
