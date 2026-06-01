@@ -68,9 +68,11 @@ Add:
 - `GMAIL_USER`
 - `GMAIL_APP_PASSWORD`
 - `ALERT_EMAIL`
-- `GITHUB_REPO` (format: `yourusername/whale-trade-alerts`)
 
-`GITHUB_TOKEN` is auto-provided by Actions — do **not** add it manually.
+`GITHUB_TOKEN` and `GITHUB_REPO` are auto-provided by Actions — do **not**
+add them manually (GitHub reserves the `GITHUB_` prefix for secrets anyway).
+For local runs, set `GITHUB_REPO=yourusername/whale-trade-alerts` in your
+`.env` so the agent can commit `seen_trades.json` back via the API.
 
 ### 6. Test locally
 
