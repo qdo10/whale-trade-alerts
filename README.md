@@ -68,11 +68,21 @@ Add:
 - `GMAIL_USER`
 - `GMAIL_APP_PASSWORD`
 - `ALERT_EMAIL`
+- `FMP_API_KEY` *(optional, recommended for live Senate data —
+  free at [financialmodelingprep.com](https://site.financialmodelingprep.com/developer/docs))*
 
 `GITHUB_TOKEN` and `GITHUB_REPO` are auto-provided by Actions — do **not**
 add them manually (GitHub reserves the `GITHUB_` prefix for secrets anyway).
 For local runs, set `GITHUB_REPO=yourusername/whale-trade-alerts` in your
 `.env` so the agent can commit `seen_trades.json` back via the API.
+
+### Senate data: live vs. historical
+
+Without `FMP_API_KEY`, Senate data falls through to a community mirror
+that stopped updating in March 2021 — useful for historical context but
+zero new alerts. With `FMP_API_KEY` set, the agent pulls live Senate
+trades from Financial Modeling Prep (free tier covers our 1 call/day
+needs many times over).
 
 ### 6. Test locally
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 import time
 from typing import Any
@@ -90,8 +91,59 @@ SENATE_SOURCES = [
     "https://senatestockwatcher.com/api/transactions",
 ]
 
+# Financial Modeling Prep — free tier, 250 calls/day. Set FMP_API_KEY to enable.
+FMP_SENATE_URL = "https://financialmodelingprep.com/api/v4/senate-trading-rss-feed"
+
+
+def _fetch_senate_fmp() -> list[dict[str, Any]]:
+    """Pull live Senate trades from FMP and map into the timothycarambat shape."""
+    key = os.environ.get("FMP_API_KEY", "").strip()
+    if not key:
+        return []
+    out: list[dict[str, Any]] = []
+    # FMP paginates; pull up to ~10 pages (~1000 records) which covers months.
+    for page in range(10):
+        try:
+            r = _get_with_retry(f"{FMP_SENATE_URL}?page={page}&apikey={key}", retries=1)
+            if r is None or r.status_code != 200:
+                break
+            chunk = r.json()
+            if not isinstance(chunk, list) or not chunk:
+                break
+            for item in chunk:
+                first = item.get("firstName") or ""
+                last = item.get("lastName") or ""
+                office = item.get("office") or ""
+                out.append({
+                    "transaction_date": item.get("transactionDate") or "",
+                    "disclosure_date": item.get("dateRecieved")
+                                       or item.get("dateReceived") or "",
+                    "owner": item.get("owner") or "",
+                    "ticker": (item.get("symbol") or item.get("ticker") or "").upper(),
+                    "asset_description": item.get("assetDescription") or "",
+                    "asset_type": item.get("assetType") or "",
+                    "type": item.get("type") or "",
+                    "amount": item.get("amount") or "",
+                    "comment": item.get("comment") or "",
+                    "senator": f"{first} {last}".strip(),
+                    "ptr_link": item.get("link") or "",
+                    "_office": office,
+                })
+            if len(chunk) < 50:  # short page → no more data
+                break
+        except Exception as exc:
+            log.warning("FMP Senate page %d failed: %s", page, exc)
+            break
+    if out:
+        log.info("Senate PTR: %d transactions fetched (source: FMP live)", len(out))
+    return out
+
 
 def fetch_senate() -> list[dict[str, Any]]:
+    # Prefer live FMP data when an API key is configured.
+    fmp = _fetch_senate_fmp()
+    if fmp:
+        return fmp
     for i, url in enumerate(SENATE_SOURCES):
         try:
             r = _get_with_retry(url)
