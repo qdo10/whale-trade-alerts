@@ -153,13 +153,25 @@ def build_email_html(trades: list[dict[str, Any]],
 
     new_section = ""
     if new_trades:
-        cards = "".join(_card_html(t) for t in new_trades)
+        # Cap cards so a backfill run (e.g. first successful run with thousands
+        # of unseen trades) doesn't produce a multi-megabyte email.
+        CARD_CAP = 25
+        cards = "".join(_card_html(t) for t in new_trades[:CARD_CAP])
+        overflow = ""
+        if len(new_trades) > CARD_CAP:
+            overflow = (
+                f'<div style="padding:8px 0;color:#6b7280;font-size:12px;'
+                f'text-align:center">Showing top {CARD_CAP} of {len(new_trades)} '
+                f'new trades by amount — see the table below or '
+                f'<a href="{escape(pages_url)}" style="color:#2563eb">'
+                f'the dashboard</a> for the rest.</div>'
+            )
         new_section = f"""
 <div style="padding:20px 28px;background:#fff">
   <div style="border-left:4px solid #dc2626;padding-left:10px;margin-bottom:12px">
     <h2 style="margin:0;color:#0f1923;font-size:18px">🚨 New Trades Just Filed</h2>
   </div>
-  {cards}
+  {cards}{overflow}
 </div>"""
 
     if asch.get("has_new_filing"):

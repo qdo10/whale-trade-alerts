@@ -255,7 +255,7 @@ def normalize_house(rows: list[dict[str, Any]]) -> list[Trade]:
             amount = _normalize_amount(r.get("amount") or "")
             party, party_short = _party_for(person)
             state = (r.get("district") or "")[:2].upper() if r.get("district") else ""
-            url = r.get("ptr_link") or ""
+            url = r.get("ptr_link") or r.get("source_url") or ""
             tid = _hash_id(person, ticker, tx_type, tx_date)
             opt = _parse_option(asset_desc, r.get("comment") or "") if asset_type == "Option" else {
                 "option_type": None, "strike_price": None,

@@ -40,72 +40,91 @@ def _get_with_retry(url: str, headers: dict[str, str] | None = None,
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Source 1 — House PTR
+#
+# As of mid-2026 the original house-stock-watcher.com domain and its S3 bucket
+# are offline. A community fork (TattooedHead/house-stock-watcher-data) keeps
+# the same JSON shape and is updated daily. We try it first, then fall back
+# to the original S3 URL (which still 403s but may come back), and finally
+# the dead community site, which is kept here only as a tombstone.
 # ──────────────────────────────────────────────────────────────────────────────
-HOUSE_PRIMARY = ("https://house-stock-watcher-data.s3-us-west-2.amazonaws.com/"
-                 "data/all_transactions.json")
-HOUSE_FALLBACK = "https://housestockwatcher.com/api/transactions"
+HOUSE_SOURCES = [
+    "https://raw.githubusercontent.com/TattooedHead/house-stock-watcher-data/"
+    "main/data/all_transactions.json",
+    "https://house-stock-watcher-data.s3-us-west-2.amazonaws.com/"
+    "data/all_transactions.json",
+    "https://housestockwatcher.com/api/transactions",
+]
 
 
 def fetch_house() -> list[dict[str, Any]]:
-    try:
-        r = _get_with_retry(HOUSE_PRIMARY)
-        if r is None or r.status_code != 200:
-            log.info("House primary failed; trying fallback")
-            r = _get_with_retry(HOUSE_FALLBACK)
-        if r is None:
-            log.warning("House PTR: all endpoints failed")
-            return []
-        data = r.json()
-        if not isinstance(data, list):
-            log.warning("House PTR: unexpected response type %s", type(data))
-            return []
-        log.info("House PTR: %d transactions fetched", len(data))
-        return data
-    except Exception as exc:
-        log.exception("House PTR fetch failed: %s", exc)
-        return []
+    for i, url in enumerate(HOUSE_SOURCES):
+        try:
+            r = _get_with_retry(url)
+            if r is None or r.status_code != 200:
+                continue
+            data = r.json()
+            if not isinstance(data, list) or not data:
+                continue
+            log.info("House PTR: %d transactions fetched (source #%d)", len(data), i + 1)
+            return data
+        except Exception as exc:
+            log.warning("House source #%d (%s) failed: %s", i + 1, url[:60], exc)
+    log.warning("House PTR: all endpoints failed")
+    return []
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Source 2 — Senate PTR
+#
+# The official senatestockwatcher.com S3 bucket is also offline. The
+# timothycarambat GitHub mirror still serves the original aggregate JSON
+# but stopped being updated in March 2021 — it will return historical data
+# only. The dedup layer treats those records as already-seen, so they don't
+# produce false alerts. Listed last is the original S3 URL as a tombstone.
 # ──────────────────────────────────────────────────────────────────────────────
-SENATE_PRIMARY = ("https://senate-stock-watcher-data.s3-us-west-2.amazonaws.com/"
-                  "aggregate/all_transactions.json")
-SENATE_FALLBACK = "https://senatestockwatcher.com/api/transactions"
+SENATE_SOURCES = [
+    "https://raw.githubusercontent.com/timothycarambat/senate-stock-watcher-data/"
+    "master/aggregate/all_transactions.json",
+    "https://senate-stock-watcher-data.s3-us-west-2.amazonaws.com/"
+    "aggregate/all_transactions.json",
+    "https://senatestockwatcher.com/api/transactions",
+]
 
 
 def fetch_senate() -> list[dict[str, Any]]:
-    try:
-        r = _get_with_retry(SENATE_PRIMARY)
-        if r is None or r.status_code != 200:
-            log.info("Senate primary failed; trying fallback")
-            r = _get_with_retry(SENATE_FALLBACK)
-        if r is None:
-            log.warning("Senate PTR: all endpoints failed")
-            return []
-        data = r.json()
-        flattened: list[dict[str, Any]] = []
-        # The aggregate file is a list of senator objects with transactions[]
-        if isinstance(data, list) and data and isinstance(data[0], dict) and "transactions" in data[0]:
-            for senator in data:
-                first = senator.get("first_name", "")
-                last = senator.get("last_name", "")
-                office = senator.get("office", "")
-                received = senator.get("date_recieved") or senator.get("date_received", "")
-                for tx in senator.get("transactions", []) or []:
-                    row = dict(tx)
-                    row["_senator_first"] = first
-                    row["_senator_last"] = last
-                    row["_office"] = office
-                    row.setdefault("disclosure_date", received)
-                    flattened.append(row)
-        elif isinstance(data, list):
-            flattened = data
-        log.info("Senate PTR: %d transactions fetched", len(flattened))
-        return flattened
-    except Exception as exc:
-        log.exception("Senate PTR fetch failed: %s", exc)
-        return []
+    for i, url in enumerate(SENATE_SOURCES):
+        try:
+            r = _get_with_retry(url)
+            if r is None or r.status_code != 200:
+                continue
+            data = r.json()
+            flattened: list[dict[str, Any]] = []
+            # Some mirrors group transactions under senator objects; flatten if so.
+            if (isinstance(data, list) and data and isinstance(data[0], dict)
+                    and "transactions" in data[0]):
+                for senator in data:
+                    first = senator.get("first_name", "")
+                    last = senator.get("last_name", "")
+                    office = senator.get("office", "")
+                    received = senator.get("date_recieved") or senator.get("date_received", "")
+                    for tx in senator.get("transactions", []) or []:
+                        row = dict(tx)
+                        row["_senator_first"] = first
+                        row["_senator_last"] = last
+                        row["_office"] = office
+                        row.setdefault("disclosure_date", received)
+                        flattened.append(row)
+            elif isinstance(data, list):
+                flattened = data
+            if not flattened:
+                continue
+            log.info("Senate PTR: %d transactions fetched (source #%d)",
+                     len(flattened), i + 1)
+            return flattened
+        except Exception as exc:
+            log.warning("Senate source #%d (%s) failed: %s", i + 1, url[:60], exc)
+    log.warning("Senate PTR: all endpoints failed")
+    return []
 
 
 # ──────────────────────────────────────────────────────────────────────────────
