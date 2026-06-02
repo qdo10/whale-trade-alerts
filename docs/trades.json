@@ -1,11 +1,37 @@
 {
   "metadata": {
-    "generated_at": "2026-06-01T23:20:08.275529+00:00",
-    "total_trades": 1921,
-    "new_trades_count": 0,
-    "date_range": "2025-06-01 to 2026-06-01"
+    "generated_at": "2026-06-02T23:25:06.170713+00:00",
+    "total_trades": 1922,
+    "new_trades_count": 1,
+    "date_range": "2025-06-02 to 2026-06-02"
   },
   "trades": [
+    {
+      "id": "22da426372f7bfac",
+      "is_new": true,
+      "source": "House PTR",
+      "person": "Ed Case",
+      "role": "Representative",
+      "party": "Unknown",
+      "party_short": "?",
+      "state": "HI",
+      "chamber": "House",
+      "ticker": "AAPL",
+      "asset_description": "Apple Inc. - Common Stock",
+      "asset_type": "Stock",
+      "transaction_type": "Buy",
+      "amount": "$1,001\u2013$15,000",
+      "amount_sort": 1,
+      "transaction_date": "2026-05-14",
+      "disclosure_date": "2026-05-31",
+      "filing_url": "https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/2026/20034668.pdf",
+      "option_type": null,
+      "strike_price": null,
+      "expiration_date": null,
+      "contracts": null,
+      "quantity": null,
+      "thirteen_f_note": null
+    },
     {
       "id": "d4caae8f803fa213",
       "is_new": false,
